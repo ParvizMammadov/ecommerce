@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "117338491470",
+    "project_id": "pako-51a4e",
+    "storage_bucket": "pako-51a4e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:117338491470:android:316b664466f55bdc75111f",
+        "android_client_info": {
+          "package_name": "com.example.monny"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_iBdeMIadrV7nMH01k94sAhHx2ts_zpc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
