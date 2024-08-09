@@ -1,14 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:monny/api/balance.dart';
-import 'package:monny/api/models.dart';
 import 'package:monny/screens/busket.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  HomeScreenState createState() => HomeScreenState();
+}
+
+class HomeScreenState extends ConsumerState<HomeScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      // Save the scroll position if needed
+    });
+  }
+
+  Future<void> _refresh() async {
+    // Запрашиваем обновление данных
+    await ref.refresh(productProvider.future);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final productAsyncValue = ref.watch(productProvider);
     final cartState = ref.watch(cartProvider);
     final cartNotifier = ref.watch(cartProvider.notifier);
@@ -100,93 +119,97 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: productAsyncValue.when(
-        data: (products) {
-          return Consumer(
-            builder: (context, ref, _) {
-              final sortOption = ref.watch(sortOptionProvider);
-              final isSortedAscending = ref.watch(isSortedAscendingProvider);
-              final searchText = ref.watch(searchTextProvider);
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: productAsyncValue.when(
+          data: (products) {
+            return Consumer(
+              builder: (context, ref, _) {
+                final sortOption = ref.watch(sortOptionProvider);
+                final isSortedAscending = ref.watch(isSortedAscendingProvider);
+                final searchText = ref.watch(searchTextProvider);
 
-              if (sortOption == 'price') {
-                products.sort((a, b) => isSortedAscending
-                    ? a.price.compareTo(b.price)
-                    : b.price.compareTo(a.price));
-              } else if (sortOption == 'rate') {
-                products.sort((a, b) => isSortedAscending
-                    ? a.rate.compareTo(b.rate)
-                    : b.rate.compareTo(a.rate));
-              }
+                if (sortOption == 'price') {
+                  products.sort((a, b) => isSortedAscending
+                      ? a.price.compareTo(b.price)
+                      : b.price.compareTo(a.price));
+                } else if (sortOption == 'rate') {
+                  products.sort((a, b) => isSortedAscending
+                      ? a.rate.compareTo(b.rate)
+                      : b.rate.compareTo(a.rate));
+                }
 
-              final filteredProducts = searchText.isEmpty
-                  ? products
-                  : products
-                      .where((product) => product.title
-                          .toLowerCase()
-                          .contains(searchText.toLowerCase()))
-                      .toList();
+                final filteredProducts = searchText.isEmpty
+                    ? products
+                    : products
+                        .where((product) => product.title
+                            .toLowerCase()
+                            .contains(searchText.toLowerCase()))
+                        .toList();
 
-              return GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 2 / 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: filteredProducts.length,
-                itemBuilder: (context, index) {
-                  final product = filteredProducts[index];
-                  return Card(
-                    elevation: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Image.network(
-                            product.image,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
+                return GridView.builder(
+                  controller: _scrollController,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 2 / 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: filteredProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = filteredProducts[index];
+                    return Card(
+                      elevation: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Image.network(
+                              product.image,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product.title,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.title,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '\$${product.price.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              Text(
-                                'Rate: ${product.rate.toString()}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  cartNotifier.addToCart(product);
-                                },
-                                child: const Text('Buy'),
-                              ),
-                            ],
+                                Text(
+                                  '\$${product.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                Text(
+                                  'Rate: ${product.rate.toString()}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    cartNotifier.addToCart(product);
+                                  },
+                                  child: const Text('Buy'),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Center(child: Text('Error: $error')),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Center(child: Text('Error: $error')),
+        ),
       ),
     );
   }
